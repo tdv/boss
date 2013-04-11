@@ -71,6 +71,9 @@ namespace Boss
       };
     };
     
+    template <typename T>
+    constexpr uint32_t const Crc32TableWrap<T>::Table[256];
+    
     typedef Crc32TableWrap<EmptyType> Crc32Table;
     
     template<int const I>

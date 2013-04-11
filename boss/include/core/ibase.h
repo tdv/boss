@@ -8,7 +8,7 @@
 #include <tuple>
 
 #define BOSS_DECLARE_IFACEID(ifaceid_) \
-  static constexpr Boss::InterfaceId GetInterfaceId() \
+  static constexpr Boss::InterfaceId const GetInterfaceId() \
   { \
     return Boss::Crc32(ifaceid_); \
   }

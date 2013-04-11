@@ -9,10 +9,13 @@ namespace Boss
 {
 
   template <typename T>
+  class RefObjQIPtr;
+
+  template <typename T>
   class RefObjPtr final
   {
   public:
-    explicit RefObjPtr(T *ptr = 0)
+    explicit RefObjPtr(T *ptr = nullptr)
       : Ptr(ptr)
     {
       if (Ptr)
@@ -101,15 +104,17 @@ namespace Boss
     UInt Release()
     {
       UInt Ret = 0;
-      if (Ptr && !(Ret = Ptr->Release()))
-        Ptr = 0;
+      if (Ptr)
+        Ret = Ptr->Release();
+      Ptr = 0;
       return Ret;
     }
     template <typename IFace>
     RetCode QueryInterface(IFace **iface)
     {
       return !Ptr ? Status::Fail :
-        Ptr->QueryInterface(IntefaceTraits<IFace>::Id, reinterpret_cast<Boss::Ptr *>(iface));
+        Ptr->QueryInterface(InterfaceTraits<IFace>::Id,
+          reinterpret_cast<Boss::Ptr *>(iface));
     }
     T* Get()
     {
@@ -148,6 +153,9 @@ namespace Boss
   private:
     template <typename Other>
     friend class RefObjPtr;
+    template <typename Other>
+    friend class RefObjQIPtr;
+    
     T *Ptr;
   };
 

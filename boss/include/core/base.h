@@ -19,11 +19,6 @@ namespace Boss
   namespace Private
   {
 
-    class BaseAdditive
-      : public IBase
-    {
-    };
-    
     template <typename T>
     class HasBeforeRelease
     {
@@ -103,7 +98,11 @@ namespace Boss
       }
     };
 
-    template <typename T, bool IsCoClass = std::is_base_of<CoClassAdditive, T>::value >
+    template
+    <
+      typename T,
+      bool IsCoClass = std::is_base_of<CoClassAdditive, T>::value
+    >
     struct BeforeRelease
     {
       template <typename ObjType>
@@ -128,7 +127,7 @@ namespace Boss
     struct BeforeReleaseIter<T, -1>
     {
       template <typename ObjType>
-      static void Release(ObjType *obj)
+      static void Release(ObjType *)
       {
       }
     };
@@ -146,11 +145,15 @@ namespace Boss
       }
     };
 
-    template <typename T, bool IsCoClass = std::is_base_of<CoClassAdditive, T>::value >
+    template
+    <
+      typename T,
+      bool IsCoClass = std::is_base_of<CoClassAdditive, T>::value
+    >
     struct FinalizeConstruct
     {
       template <typename ObjType>
-      static void Construct(ObjType *obj)
+      static void Construct(ObjType *)
       {
       }
     };
@@ -171,7 +174,7 @@ namespace Boss
     struct FinalizeConstructIter<T, -1>
     {
       template <typename ObjType>
-      static void Construct(ObjType *obj)
+      static void Construct(ObjType *)
       {
       }
     };
@@ -199,7 +202,7 @@ namespace Boss
       static RetCode Query(ObjType *obj, InterfaceId ifaceId, Ptr *iface)
       {
         typedef typename std::tuple_element<I, T>::type CurType;
-        if (ifaceId == IntefaceTraits<CurType>::Id)
+        if (ifaceId == InterfaceTraits<CurType>::Id)
         {
           *iface = static_cast<CurType *>(obj);
           return Status::Ok;
@@ -213,9 +216,9 @@ namespace Boss
     struct QueryInterfacesListIter<T, -1>
     {
       template <typename ObjType>
-      static RetCode Query(ObjType *obj, InterfaceId ifaceId, Ptr *iface)
+      static RetCode Query(ObjType *, InterfaceId, Ptr *)
       {
-        return Status::InterfaceNotFound;
+        return Status::NotFound;
       }
     };
 
@@ -237,22 +240,26 @@ namespace Boss
       template <typename ObjType>
       static RetCode Query(ObjType *obj, InterfaceId ifaceId, Ptr *iface)
       {
-        if (ifaceId == IntefaceTraits<IBase>::Id)
+        if (ifaceId == InterfaceTraits<IBase>::Id)
         {
           *iface = static_cast<IBase *>(obj);
           return Status::Ok;
         }
-        return Status::InterfaceNotFound;
+        return Status::NotFound;
       }
     };
 
-    template <typename T, bool IsCoClass = std::is_base_of<CoClassAdditive, T>::value >
+    template
+    <
+      typename T,
+      bool IsCoClass = std::is_base_of<CoClassAdditive, T>::value
+    >
     struct QueryInterface
     {
       template <typename ObjType>
       static RetCode Query(ObjType *obj, InterfaceId ifaceId, Ptr *iface)
       {
-        if (ifaceId == IntefaceTraits<T>::Id)
+        if (ifaceId == InterfaceTraits<T>::Id)
         {
           *iface = static_cast<T *>(obj);
           return Status::Ok;
@@ -279,7 +286,7 @@ namespace Boss
       template <typename ObjType>
       static RetCode Query(ObjType *obj, InterfaceId ifaceId, Ptr *iface)
       {
-        return Status::InterfaceNotFound;
+        return Status::NotFound;
       }
     };
 
@@ -299,8 +306,7 @@ namespace Boss
 
   template <typename T>
   class Base final
-    : public Private::BaseAdditive
-    , public T
+    : public T
   {
   public:
     Base(Base const &) = delete;
@@ -352,7 +358,7 @@ namespace Boss
       RetCode Ret = Private::QueryInterface<T>::Query(static_cast<T *>(this), ifaceId, iface);
       if (Ret == Status::Ok)
         AddRef();
-      return -1;
+      return Ret;
     }
   };
 

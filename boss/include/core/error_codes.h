@@ -10,9 +10,12 @@ namespace Boss
     enum
     {
       Ok,
+      False,
       Fail,
-      IvnalidArgument,
-      InterfaceNotFound
+      NotFound,
+      AlreadyExists,
+      InvalidArgument,
+      NotImplemented
     };
 
   }

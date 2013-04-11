@@ -11,7 +11,7 @@ namespace Boss
   namespace Private
   {
  
-    struct ModuleRefCounterTypeStub\
+    struct ModuleRefCounterTypeStub
     {
     };
 

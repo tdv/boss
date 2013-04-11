@@ -8,6 +8,7 @@ namespace Boss
 
   typedef std::uint32_t InterfaceId;
   typedef std::uint32_t ClassId;
+  typedef std::uint32_t ServiceId;
 
   typedef std::uint32_t UInt;
 
