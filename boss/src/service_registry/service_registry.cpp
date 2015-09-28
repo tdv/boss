@@ -1,12 +1,22 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #include "service_registry.h"
 #include "core/error_codes.h"
 #include "core/ref_obj_qi_ptr.h"
 #include "common/ientity_id.h"
 #include "common/entity_id.h"
 #include "common/enum.h"
+#include "common/enum_helper.h"
 #include "plugin/service_info.h"
 
-#include <algorithm>
 #include <vector>
 #include <list>
 
@@ -17,7 +27,10 @@ namespace Boss
   char const ServiceRegistry::ServiceTag[] = "Service";
   char const ServiceRegistry::ServiceIdTag[] = "ServiceId";
   char const ServiceRegistry::ClassIdsTag[] = "ClassIds";
-  char const ServiceRegistry::RemotePropertiesTag[] = "RemoteProperties";
+  char const ServiceRegistry::SerializerIdTag[] = "SerializerId";
+  char const ServiceRegistry::RemotingIdTag[] = "RemotingId";
+  char const ServiceRegistry::TransportIdTag[] = "TransportId";
+  char const ServiceRegistry::TransportPropertiesTag[] = "TransportProperties";
   char const ServiceRegistry::ModulePathTag[] = "ModulePath";
   char const ServiceRegistry::ServicesTag[] = "Services";
   
@@ -62,17 +75,15 @@ namespace Boss
       Res = Info->GetClassIds(ClassIdsEnum.GetPPtr());
       if (Res != Status::Ok)
         return Res;
+      EnumHelper<IEntityId> ClassIdsEnumHelper(ClassIdsEnum);
       typedef std::vector<ClassId> ClassIdPool;
       ClassIdPool ClassIds;
       if (ClassIdsEnum->Reset() != Status::Ok)
         return Status::Fail;
-      for (RefObjPtr<IBase> i ; ClassIdsEnum->Next(i.GetPPtr()) == Status::Ok ; i.Release())
+      for (auto i = ClassIdsEnumHelper.First() ; i.Get() ; i = ClassIdsEnumHelper.Next())
       {
-        RefObjQIPtr<IEntityId> Id(i);
-        if (!Id.Get())
-          return Status::Fail;
         ClassId ClsId = 0;
-        Res = Id->GetId(&ClsId);
+        Res = i->GetId(&ClsId);
         if (Res != Status::Ok)
           return Res;
         if (Services.find(ClsId) != std::end(Services))
@@ -84,8 +95,16 @@ namespace Boss
           ServiceId Id = 0;
           return info.second->GetServiceId(&Id) == Status::Ok && Id == SrvId;
         };
-      auto Iter = std::find_if(std::begin(Services), std::end(Services), Pred);
-      if (Iter != std::end(Services))
+      bool Exists = false;
+      for (auto Iter : Services)
+      {
+        if (Pred(Iter))
+        {
+          Exists = true;
+          break;
+        }
+      }
+      if (Exists)
         return Status::AlreadyExists;
       for (auto const &i : ClassIds)
         Services[i] = Info;
@@ -136,17 +155,12 @@ namespace Boss
       RefObjPtr<IBase> ServiceEnumProp;
       if ((Code = Registry->GetProperty(ServicesTag, ServiceEnumProp.GetPPtr())) != Status::Ok)
         return Code;
-      RefObjQIPtr<IEnum> ServiceEnum(ServiceEnumProp);
-      if (!ServiceEnum.Get())
-        return Status::Fail;
+      EnumHelper<IPropertyBag> ServiceEnum(ServiceEnumProp);
       ServicePool NewServices;
-      for (RefObjPtr<IBase> i ; ServiceEnum->Next(i.GetPPtr()) == Status::Ok ; i.Release())
+      for (auto i =ServiceEnum.First() ; i.Get() ; i = ServiceEnum.Next())
       {
-        RefObjQIPtr<IPropertyBag> ServiceItem(i);
-        if (!ServiceItem.Get())
-          return Status::Fail;
         RefObjPtr<IBase> EntId;
-        if ((Code = ServiceItem->GetProperty(ServiceIdTag, EntId.GetPPtr())) != Status::Ok)
+        if ((Code = i->GetProperty(ServiceIdTag, EntId.GetPPtr())) != Status::Ok)
           return Code;
         RefObjQIPtr<IEntityId> EntSrvId(EntId);
         if (!EntSrvId.Get())
@@ -155,14 +169,14 @@ namespace Boss
         if ((Code = EntSrvId->GetId(&SrvId)) != Status::Ok)
           return Code;
         RefObjPtr<IBase> ClassIdsEnumProp;
-        if ((Code = ServiceItem->GetProperty(ClassIdsTag, ClassIdsEnumProp.GetPPtr())) != Status::Ok)
+        if ((Code = i->GetProperty(ClassIdsTag, ClassIdsEnumProp.GetPPtr())) != Status::Ok)
           return Code;
         RefObjQIPtr<IEnum> ClassIdsEnum(ClassIdsEnumProp);
         if (!ClassIdsEnum.Get())
           return Status::Fail;
         RefObjPtr<IBase> ModulePathProp;
         RefObjPtr<IServiceInfo> ServiceInfo;
-        if (ServiceItem->GetProperty(ModulePathTag, ModulePathProp.GetPPtr()) == Status::Ok)
+        if (i->GetProperty(ModulePathTag, ModulePathProp.GetPPtr()) == Status::Ok)
         {
           RefObjQIPtr<IString> ModulePath(ModulePathProp);
           if (!ModulePath.Get())
@@ -175,30 +189,68 @@ namespace Boss
         }
         else
         {
-          RefObjPtr<IBase> RemotePropertiesProp;
-          if (ServiceItem->GetProperty(RemotePropertiesTag, RemotePropertiesProp.GetPPtr()) == Status::Ok)
+          auto RemoteSrvInfo = Base<RemoteServiceInfo>::Create();
+          RemoteSrvInfo->SetServiceId(SrvId);
+          RemoteSrvInfo->AddCoClassIds(ClassIdsEnum);
           {
-            RefObjQIPtr<IPropertyBag> RemoteProperties(RemotePropertiesProp);
-            if (!RemoteProperties.Get())
+            RefObjPtr<IBase> EntId;
+            if (i->GetProperty(SerializerIdTag, EntId.GetPPtr()) == Status::Ok)
+            {
+              RefObjQIPtr<IEntityId> SerializerId(EntId);
+              if (!SerializerId.Get())
+                return Status::Fail;
+              ClassId Id;
+              if (SerializerId->GetId(&Id) != Status::Ok)
+                return Status::Fail;
+              RemoteSrvInfo->SetSerializerId(Id);
+            }
+            return Status::Fail;
+          }
+          {
+            RefObjPtr<IBase> EntId;
+            if (i->GetProperty(RemotingIdTag, EntId.GetPPtr()) == Status::Ok)
+            {
+              RefObjQIPtr<IEntityId> RemotingId(EntId);
+              if (!RemotingId.Get())
+                return Status::Fail;
+              ClassId Id;
+              if (RemotingId->GetId(&Id) != Status::Ok)
+                return Status::Fail;
+              RemoteSrvInfo->SetRemotingId(Id);
+            }
+            return Status::Fail;
+          }
+          {
+            RefObjPtr<IBase> EntId;
+            if (i->GetProperty(TransportIdTag, EntId.GetPPtr()) == Status::Ok)
+            {
+              RefObjQIPtr<IEntityId> TransportId(EntId);
+              if (!TransportId.Get())
+                return Status::Fail;
+              ClassId Id;
+              if (TransportId->GetId(&Id) != Status::Ok)
+                return Status::Fail;
+              RemoteSrvInfo->SetTransportId(Id);
+            }
+            return Status::Fail;
+          }
+          RefObjPtr<IBase> TransportPropertiesProp;
+          if (i->GetProperty(TransportPropertiesTag, TransportPropertiesProp.GetPPtr()) == Status::Ok)
+          {
+            RefObjQIPtr<IPropertyBag> TransportProperties(TransportPropertiesProp);
+            if (!TransportProperties.Get())
               return Status::Fail;
-            auto RemoteSrvInfo = Base<RemoteServiceInfo>::Create();
-            RemoteSrvInfo->SetServiceId(SrvId);
-            RemoteSrvInfo->AddCoClassIds(ClassIdsEnum);
-            RemoteSrvInfo->SetProps(RemoteProperties);
+            RemoteSrvInfo->SetProps(TransportProperties);
             ServiceInfo = RemoteSrvInfo;
           }
           else
             return Status::Fail;
         }
-        if ((Code = ClassIdsEnum->Reset()) != Status::Ok)
-          return Code;
-        for (RefObjPtr<IBase> j ; ClassIdsEnum->Next(j.GetPPtr()) == Status::Ok ; j.Release())
+        EnumHelper<IEntityId> ClassIdsEnumHelper(ClassIdsEnum);
+        for (auto j = ClassIdsEnumHelper.First() ; j.Get() ; j = ClassIdsEnumHelper.Next())
         {
-          RefObjQIPtr<IEntityId> ClsId(j);
-          if (!ClsId.Get())
-            return Status::Fail;
           ClassId Id = 0;
-          if ((Code = ClsId->GetId(&Id)) != Status::Ok)
+          if ((Code = j->GetId(&Id)) != Status::Ok)
             return Code;
           NewServices[Id] = ServiceInfo;
         }
@@ -224,12 +276,17 @@ namespace Boss
         std::lock_guard<std::recursive_mutex> Lock(Mtx);
         for (auto const &service : Services)
         {
-          if (std::find_if(std::begin(ServiceInfoSet), std::end(ServiceInfoSet),
-                [&] (IServiceInfoPtr const &info) { return info.Get() == service.second.Get(); } )
-              != std::end(ServiceInfoSet))
+          bool Continue = false;
+          for (auto Info : ServiceInfoSet)
           {
-            continue;
+            if (Info.Get() == service.second.Get())
+            {
+              Continue = true;
+              break;
+            }
           }
+          if (Continue)
+            continue;
           ServiceInfoSet.push_back(service.second);
         }
       }
@@ -258,10 +315,33 @@ namespace Boss
           RefObjQIPtr<IRemoteServiceInfo> RemoteService(service);
           if (RemoteService.Get())
           {
-            RefObjPtr<IPropertyBag> RemoteServiceProps;
-            if ((Code = RemoteService->GetProperties(RemoteServiceProps.GetPPtr())) != Status::Ok ||
-                (Code = ServiceItem->SetProperty(RemotePropertiesTag, RemoteServiceProps.Get())) != Status::Ok)
-              return Code;
+            {
+              ClassId SerializerId = 0;
+              if ((Code = RemoteService->GetSerializerId(&SerializerId)) != Status::Ok ||
+                  (Code = ServiceItem->SetProperty(SerializerIdTag, Base<EntityId>::Create(SerializerId).Get())) != Status::Ok)
+              {
+                return Code;
+              }
+            }
+            {
+              ClassId RemotingId = 0;
+              if ((Code = RemoteService->GetRemotingId(&RemotingId)) != Status::Ok ||
+                  (Code = ServiceItem->SetProperty(RemotingIdTag, Base<EntityId>::Create(RemotingId).Get())) != Status::Ok)
+              {
+                return Code;
+              }
+            }
+            {
+              ClassId TransportId = 0;
+              if ((Code = RemoteService->GetTransportId(&TransportId)) != Status::Ok ||
+                  (Code = ServiceItem->SetProperty(TransportIdTag, Base<EntityId>::Create(TransportId).Get())) != Status::Ok)
+              {
+                return Code;
+              }
+            }
+            RefObjPtr<IPropertyBag> TransportProps;
+            if ((Code = RemoteService->GetTransportProperties(TransportProps.GetPPtr())) != Status::Ok ||
+                (Code = ServiceItem->SetProperty(TransportPropertiesTag, TransportProps.Get())) != Status::Ok)
             {
               return Code;
             }

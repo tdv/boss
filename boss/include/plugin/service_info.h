@@ -1,3 +1,13 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #ifndef __BOSS_PLUGIN_SERVICE_INFO_H__
 #define __BOSS_PLUGIN_SERVICE_INFO_H__
 
@@ -22,7 +32,7 @@ namespace Boss
     
     template <typename T>
     class ServiceInfo<T, true>
-      : public CoClass<Crc32("Boss.ServiceInfo"), T>
+      : public SimpleCoClass<T>
     {
     public:
       ServiceInfo()
@@ -71,7 +81,7 @@ namespace Boss
   }
 
   class LocalServiceInfo
-    : public CoClass<Crc32("Boss.LocalServiceInfo"), Private::ServiceInfo<ILocalServiceInfo>>
+    : public SimpleCoClass<Private::ServiceInfo<ILocalServiceInfo>>
   {
   public:
     void SetModulePath(std::string const &path)
@@ -94,9 +104,21 @@ namespace Boss
   };
   
   class RemoteServiceInfo
-    : public CoClass<Crc32("Boss.RemoteServiceInfo"), Private::ServiceInfo<IRemoteServiceInfo>>
+    : public SimpleCoClass<Private::ServiceInfo<IRemoteServiceInfo>>
   {
   public:
+    void SetSerializerId(ClassId id)
+    {
+      SerializerId = id;
+    }
+    void SetRemotingId(ClassId id)
+    {
+      RemotingId = id;
+    }
+    void SetTransportId(ClassId id)
+    {
+      TransportId = id;
+    }
     void SetProps(RefObjPtr<IPropertyBag> props)
     {
       Props = props;
@@ -104,9 +126,33 @@ namespace Boss
     
   private:
     mutable RefObjPtr<IPropertyBag> Props;
+    ClassId SerializerId = 0;
+    ClassId RemotingId = 0;
+    ClassId TransportId = 0;
     
     // IRemoteServiceInfo
-    virtual RetCode BOSS_CALL GetProperties(IPropertyBag **props) const
+    virtual RetCode BOSS_CALL GetSerializerId(ClassId *id) const
+    {
+      if (!id)
+        return Status::InvalidArgument;
+      *id = SerializerId;
+      return Status::Ok;
+    }
+    virtual RetCode BOSS_CALL GetRemotingId(ClassId *id) const
+    {
+      if (!id)
+        return Status::InvalidArgument;
+      *id = RemotingId;
+      return Status::Ok;
+    }
+    virtual RetCode BOSS_CALL GetTransportId(ClassId *id) const
+    {
+      if (!id)
+        return Status::InvalidArgument;
+      *id = TransportId;
+      return Status::Ok;
+    }
+    virtual RetCode BOSS_CALL GetTransportProperties(IPropertyBag **props) const
     {
       return !props || *props ? Status::NotFound : Props.QueryInterface(props);
     }

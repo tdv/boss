@@ -1,3 +1,13 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #ifndef __COMMON_XML_PROPERTY_BAG_H__
 #define __COMMON_XML_PROPERTY_BAG_H__
 
@@ -15,6 +25,7 @@
 #include "core/co_class.h"
 #include "core/error_codes.h"
 #include "core/ref_obj_qi_ptr.h"
+#include "core/utils.h"
 #include "core/private/empty_type.h"
 #include "other/rapidxml-1.13/rapidxml_print.hpp"
 
@@ -64,7 +75,7 @@ namespace Boss
   }
   
   class XmlPropertyBag
-    : public CoClass<Crc32("Boss.XmlPropertyBag"), IPropertyBag, ISerializable>
+    : public SimpleCoClass<IPropertyBag, ISerializable>
   {
   public:
     XmlPropertyBag(std::string const &rootName)
@@ -215,7 +226,7 @@ namespace Boss
           UInt EntityId = 0;
           if (Id->GetId(&EntityId) != Status::Ok)
             throw std::runtime_error("Failed to get EntityId.");
-          auto *StrVal = doc->allocate_string(std::to_string(EntityId).c_str());
+          auto *StrVal = doc->allocate_string(ToString(EntityId).c_str());
           auto *StrName = doc->allocate_string(name.c_str());
           auto *NewNode = doc->allocate_node(rapidxml::node_element, StrName, StrVal);
           node->append_node(NewNode);
@@ -312,7 +323,7 @@ namespace Boss
         std::string Id(node->value(), node->value_size());
         if (Id.empty())
           throw std::runtime_error("Empty EntityId value.");
-        return Base<EntityId>::Create(std::stoul(Id));
+        return Base<EntityId>::Create(FromString<UInt>(Id));
       }
       if (Type == Tags::StringTag)
       {

@@ -1,5 +1,19 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #include "class_factory.h"
 #include "core/error_codes.h"
+#include "common/string_helper.h"
+#include "plugin/module_holder.h"
+#include "plugin/factory_tools.h"
+#include "plugin/service_locator_ids.h"
 
 #include <chrono>
 #include <set>
@@ -8,6 +22,45 @@
 
 namespace Boss
 {
+  
+  class ClassFactory::ModuleHolderEx final
+  {
+  public:
+    ModuleHolderEx(ModuleHolderEx const &) = delete;
+    ModuleHolderEx& operator = (ModuleHolderEx const &) = delete;
+    
+    ModuleHolderEx(std::string const &path)
+      : Module(std::move(DllHolder(path)))
+    {
+      auto Locator = Private::GetServiceLocator();
+      if (Locator.Get())
+      {
+        Module.SetServiceLocator(Locator.Get());
+        LocatorExists = false;
+      }
+    }
+    ~ModuleHolderEx()
+    {
+      if (LocatorExists)
+      {
+        try
+        {
+          Module.SetServiceLocator(0);
+        }
+        catch (std::exception const &)
+        {
+        }
+      }
+    }
+    ModuleHolder& GetModule()
+    {
+      return Module;
+    }
+    
+  private:
+    bool LocatorExists = false;
+    ModuleHolder Module;
+  };
 
   ClassFactory::ClassFactory()
   {
@@ -19,6 +72,10 @@ namespace Boss
 
   void ClassFactory::FinalizeConstruct()
   {
+    Locator = Boss::Private::GetServiceLocator();
+    if (Locator.Get() && Locator->AddService(Service::Locator::Id::ClassFactoryService, GetThisIBase()))
+      throw ClassFactoryException("Failed to put ClassFactory into ServiceLocator");
+    
     //CleanerThread.reset(new std::thread(&ClassFactory::Clean, this));
   }
   
@@ -33,13 +90,15 @@ namespace Boss
     {
       try
       {
-        assert(!i.second->GetRefCount() && "Module has not null reference counter.");
+        assert(!i.second->GetModule().GetRefCount() && "Module has not null reference counter.");
       }
       catch (...)
       {
         assert(false && "Failed to get module reference counter.");
       }
     }
+    if (Locator.Get())
+      Locator->DelService(Service::Locator::Id::ClassFactoryService);
   }  
 
   RetCode BOSS_CALL ClassFactory::CreateObject(ClassId clsId, IBase **inst)
@@ -54,7 +113,7 @@ namespace Boss
           auto ModuleIter = Modules.find(ServiceIter->second);
           if (ModuleIter == std::end(Modules))
             return Status::Fail;
-          return ModuleIter->second->CreateObject(clsId).QueryInterface(inst);
+          return ModuleIter->second->GetModule().CreateObject(clsId).QueryInterface(inst);
         }
       }
       if (!Registry.Get())
@@ -72,22 +131,12 @@ namespace Boss
             RefObjPtr<IString> ModulePath;
             if ((Code = LocalSrvInfo->GetModulePath(ModulePath.GetPPtr())) != Status::Ok)
               return Code;
-            RefObjPtr<IBuffer> StrBuffer;
-            if ((Code = ModulePath->GetString(IString::AnsiString, StrBuffer.GetPPtr())) != Status::Ok)
-              return Code;
-            UInt StrLen = 0;
-            void const *StrData = 0;
-            if ((Code = StrBuffer->GetSize(&StrLen)) != Status::Ok ||
-                (Code = StrBuffer->GetData(&StrData)) != Status::Ok)
-            {
-              return Code;
-            }
-            Path.assign(reinterpret_cast<char const *>(StrData), StrLen);
+            Path = std::move(StringHelper(ModulePath).GetString<IString::AnsiString>());
           }
-          auto Module = std::make_shared<ModuleHolder>(std::move(DllHolder(Path)));
-          auto NewInst = Module->CreateObject(clsId);
-          auto SrvId = Module->GetServiceId();
-          for (auto const &i : Module->GetClassIds())
+          auto Module = std::make_shared<ModuleHolderEx>(Path);
+          auto NewInst = Module->GetModule().CreateObject(clsId);
+          auto SrvId = Module->GetModule().GetServiceId();
+          for (auto const &i : Module->GetModule().GetClassIds())
             Services[i] = SrvId;
           Modules.insert(std::make_pair(SrvId, std::move(Module)));
           return NewInst.QueryInterface(inst);
@@ -97,7 +146,7 @@ namespace Boss
         RefObjQIPtr<IRemoteServiceInfo> RemoteSrvInfo(SrvInfo);
         if (RemoteSrvInfo.Get())
         {
-          // TODO::
+          return Status::NotImplemented;
         }
       }
     }
@@ -138,7 +187,7 @@ namespace Boss
         {
           try
           {
-            if (!i.second->GetRefCount())
+            if (!i.second->GetModule().GetRefCount())
               ServicesForUnload.insert(i.first);
           }
           catch (std::exception const &)

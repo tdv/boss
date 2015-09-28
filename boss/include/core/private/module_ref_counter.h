@@ -1,9 +1,18 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #ifndef __BOSS_CORE_PRIVATE_MODULE_REF_COUNTER_H__
 #define __BOSS_CORE_PRIVATE_MODULE_REF_COUNTER_H__
 
 #include "../core_types.h"
-
-#include <atomic>
+#include "module_ref_counter_impl.h"
 
 namespace Boss
 {
@@ -11,31 +20,22 @@ namespace Boss
   namespace Private
   {
  
-    struct ModuleRefCounterTypeStub
-    {
-    };
-
-    template <typename T>
-    class ModuleRefCounter
+    class ModuleCounter
     {
     public:
       static void AddRef()
       {
-        Counter.fetch_add(1, std::memory_order_relaxed);
+        ModuleCounterImpl::AddRef();
       }
       static void Release()
       {
-        Counter.fetch_sub(1, std::memory_order_relaxed);
+        ModuleCounterImpl::Release();
       }
       static UInt GetCounter()
       {
-        return Counter;
+        return ModuleCounterImpl::GetCounter();
       }
 
-    private:
-      static std::atomic<UInt> Counter;
-
-    public:
       class ScopedLock
       {
       public:
@@ -46,19 +46,14 @@ namespace Boss
 
         ScopedLock()
         {
-          ModuleRefCounter<T>::AddRef();
+          ModuleCounter::AddRef();
         }
         ~ScopedLock()
         {
-          ModuleRefCounter<T>::Release();
+          ModuleCounter::Release();
         }
       };
     };
-
-    template <typename T>
-    std::atomic<UInt> ModuleRefCounter<T>::Counter(0);
-
-    typedef ModuleRefCounter<ModuleRefCounterTypeStub> ModuleCounter;
 
   }
 

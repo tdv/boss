@@ -1,3 +1,13 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #ifndef __BOSS_CORE_CO_CLASS_H__
 #define __BOSS_CORE_CO_CLASS_H__
 
@@ -7,13 +17,17 @@
 
 namespace Boss
 {
+  
+  template <typename ... T>
+  class SimpleCoClass;
 
   namespace Private
   {
 
-    struct CoClassAdditive
+    struct CoClassBase
     {
-      virtual ~CoClassAdditive() {}
+      virtual ~CoClassBase() {}
+      virtual IBase* GetThisIBase() = 0;
     };
 
     template <typename T>
@@ -27,16 +41,26 @@ namespace Boss
     {
       return  obj->Constructed;
     }
+    
+    template <typename>
+    struct CoClassFakeBase;
+    
+    template <typename ... T>
+    struct CoClassFakeBase<SimpleCoClass<T ...>>
+      : public CoClassBase
+    {
+    };
+    
   }
 
-  template <ClassId ClsId, typename ... T>
-  class CoClass
-    : public virtual Private::CoClassAdditive
+  template <typename ... T>
+  class SimpleCoClass
+    : public Private::CoClassFakeBase<SimpleCoClass<T ... >>
     , public T ...
   {
   public:
     typedef std::tuple<T ... > BaseEntities;
-    CoClass()
+    SimpleCoClass()
       : Constructed(false)
     {
     }
@@ -51,6 +75,14 @@ namespace Boss
     friend bool Private::GetConstructedFlag(Y *);
 
     bool Constructed;
+  };
+  
+  template <ClassId ClsId, typename ... T>
+  class CoClass
+    : public SimpleCoClass<T ...>
+  {
+  public:
+    enum { CoClassId = ClsId  };
   };
 
 }

@@ -1,11 +1,56 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #ifndef __BOSS_PLUGIN_MODULE_H__
 #define __BOSS_PLUGIN_MODULE_H__
 
 #include "co_class_set.h"
-#include "../core/private/module_ref_counter.h"
+#include "factory_tools.h"
+#include "../core/module.h"
+#include "../common/iservice_locator.h"
+
+namespace Boss
+{
+
+  namespace Private
+  {
+
+    namespace
+    {
+
+      RefObjPtr<IServiceLocator>& GetServiceLocatorHolder()
+      {
+        static RefObjPtr<IServiceLocator> Ret;
+        return Ret;
+      }
+      
+    }
+    
+    RefObjPtr<IServiceLocator> GetServiceLocator()
+    {
+      return GetServiceLocatorHolder();
+    }
+    
+    void SetServiceLocator(IServiceLocator *locator)
+    {
+      GetServiceLocatorHolder() = locator;
+    }
+
+  }
+
+}
 
 #ifdef __GNUC__
   #define BOSS_PLUGIN_EXPORT extern "C"
+#elif _MSC_VER
+  #define BOSS_PLUGIN_EXPORT extern "C" __declspec(dllexport)
 #else
   #error BOSS_PLUGIN_EXPORT not implemented
 #endif
@@ -19,15 +64,43 @@
     } \
   } \
   BOSS_PLUGIN_EXPORT \
-  Boss::RetCode BOSS_CALL BossGetServiceId(Boss::ServiceId *serviceId) \
+  Boss::RetCode BossGetServiceLocator(Boss::IServiceLocator **locator) \
+  { \
+    if (!locator || *locator) \
+      return Boss::Status::InvalidArgument; \
+    try \
+    { \
+      return !(*locator = Boss::Private::GetServiceLocator().Get()) ? \
+        Boss::Status::NotFound : Boss::Status::Ok; \
+    } \
+    catch (std::exception const &) \
+    { \
+    } \
+    return Boss::Status::Fail; \
+  } \
+  BOSS_PLUGIN_EXPORT \
+  Boss::RetCode BossSetServiceLocator(Boss::IServiceLocator *locator) \
+  { \
+    try \
+    { \
+      Boss::Private::SetServiceLocator(locator); \
+      return Boss::Status::Ok; \
+    } \
+    catch (std::exception const &) \
+    { \
+    } \
+    return Boss::Status::Fail; \
+  } \
+  BOSS_PLUGIN_EXPORT \
+  Boss::RetCode BossGetServiceId(Boss::ServiceId *serviceId) \
   { \
     if (!serviceId) \
       return Boss::Status::InvalidArgument; \
-    *serviceId = Boss::Crc32(#service_id_); \
+    *serviceId = Boss::Crc32(service_id_, sizeof(service_id_) - 1); \
     return Boss::Status::Ok; \
   } \
   BOSS_PLUGIN_EXPORT \
-  Boss::RetCode BOSS_CALL BossCreateObject(Boss::ClassId clsId, Boss::IBase **inst) \
+  Boss::RetCode BossCreateObject(Boss::ClassId clsId, Boss::IBase **inst) \
   { \
     if (!inst) \
       return Boss::Status::InvalidArgument; \
@@ -42,7 +115,7 @@
     return Boss::Status::Fail; \
   } \
   BOSS_PLUGIN_EXPORT \
-  Boss::RetCode BOSS_CALL BossGetClassCount(Boss::UInt *count) \
+  Boss::RetCode BossGetClassCount(Boss::UInt *count) \
   { \
     if (!count) \
       return Boss::Status::InvalidArgument; \
@@ -57,7 +130,7 @@
     return Boss::Status::Ok; \
   } \
   BOSS_PLUGIN_EXPORT \
-  Boss::RetCode BOSS_CALL BossGetClassId(Boss::UInt index, Boss::ClassId *clsId) \
+  Boss::RetCode BossGetClassId(Boss::UInt index, Boss::ClassId *clsId) \
   { \
     if (!clsId) \
       return Boss::Status::InvalidArgument; \
@@ -72,13 +145,13 @@
     return Boss::Status::Ok; \
   } \
   BOSS_PLUGIN_EXPORT \
-  Boss::RetCode BOSS_CALL BossGetRefCount(Boss::UInt *refs) \
+  Boss::RetCode BossGetRefCount(Boss::UInt *refs) \
   { \
     if (!refs) \
       return Boss::Status::InvalidArgument; \
     try \
     { \
-      *refs = Boss::Private::ModuleCounter::GetCounter(); \
+      *refs = Boss::Private::ModuleCounterImpl::GetCounter(); \
     } \
     catch (std::exception const &) \
     { \

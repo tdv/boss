@@ -1,3 +1,13 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #ifndef __BOSS_PLUGIN_SERVICE_REGISTRY_H__
 #define __BOSS_PLUGIN_SERVICE_REGISTRY_H__
 
@@ -40,7 +50,10 @@ namespace Boss
     static char const ServiceTag[];
     static char const ServiceIdTag[];
     static char const ClassIdsTag[];
-    static char const RemotePropertiesTag[];
+    static char const SerializerIdTag[];
+    static char const RemotingIdTag[];
+    static char const TransportIdTag[];
+    static char const TransportPropertiesTag[];
     static char const ModulePathTag[];
     static char const ServicesTag[];
     

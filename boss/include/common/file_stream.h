@@ -1,5 +1,20 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #ifndef __BOSS_COMMON_FILE_STREAM_H__
 #define __BOSS_COMMON_FILE_STREAM_H__
+
+#ifdef _MSC_VER
+  #pragma warning(disable : 4068)
+  #pragma warning(disable : 4996)
+#endif  // !_MSC_VER
 
 #include "iistream.h"
 #include "iostream.h"
@@ -13,7 +28,6 @@
 #include <string>
 #include <cstdio>
 #include <iterator>
-#include <algorithm>
 
 #include <assert.h>
 
@@ -114,7 +128,7 @@ namespace Boss
   }
   
   class IFileStream
-    : public CoClass<Crc32("Boss.IFileStream"), Private::IOFileStream<IIStream>>
+    : public SimpleCoClass<Private::IOFileStream<IIStream>>
   {
   public:
     IFileStream(std::string const &fileName)
@@ -124,7 +138,7 @@ namespace Boss
   };
   
   class OFileStream
-    : public CoClass<Crc32("Boss.IFileStream"), Private::IOFileStream<IOStream>>
+    : public SimpleCoClass<Private::IOFileStream<IOStream>>
   {
   public:
     OFileStream(std::string const &fileName)
@@ -134,7 +148,7 @@ namespace Boss
   };
   
   class IOFileStream
-    : public CoClass<Crc32("Boss.IFileStream"), Private::IOFileStream<IIOStream>>
+    : public SimpleCoClass<Private::IOFileStream<IIOStream>>
   {
   public:
     IOFileStream(std::string const &fileName)

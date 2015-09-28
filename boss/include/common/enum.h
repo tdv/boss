@@ -1,3 +1,13 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #ifndef __BOSS_COMMON_ENUM_H__
 #define __BOSS_COMMON_ENUM_H__
 
@@ -13,7 +23,7 @@ namespace Boss
 {
   
   class Enum
-    : public CoClass<Crc32("Boss.Enum"), IEnum>
+    : public SimpleCoClass<IEnum>
   {
   public:
     // IEnum
@@ -51,7 +61,7 @@ namespace Boss
     void AddItem(RefObjPtr<T> item)
     {
       Items.push_back(item);
-      CurPos = Items.begin();
+      CurPos = std::begin(Items);
     }
     
   private:
@@ -59,7 +69,7 @@ namespace Boss
     typedef std::list<RefObjQIPtr<IBase>> ItemPool;
     typedef ItemPool::iterator Iterator;
     ItemPool Items;
-    Iterator CurPos;
+    Iterator CurPos = std::begin(Items);
   };
   
 }

@@ -1,3 +1,13 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #ifndef __BOSS_PLUGIN_NIX_DLL_HOLDER_H__
 #define __BOSS_PLUGIN_NIX_DLL_HOLDER_H__
 
@@ -26,20 +36,20 @@ namespace Boss
       DllHolder& operator = (DllHolder const &) = delete;
       
       DllHolder(const std::string &path)
-        : DllInst(0)
+        : DllInst(dlopen(path.c_str(), RTLD_LAZY))
       {
-        if ((DllInst = dlopen(path.c_str(), RTLD_LAZY)) == nullptr)
-          throw DllHolderException("failed to load dll");
+        if (DllInst == nullptr)
+          throw DllHolderException("failed to load \"" + path + "\"");
       }
       DllHolder(DllHolder &&dll)
-        : DllInst(std::move(dll.DllInst))
+        : DllInst(dll.DllInst)
       {
         dll.DllInst = 0;
       }
       DllHolder& operator = (DllHolder &&dll)
       {
         UnloadDll();
-        DllInst = std::move(dll.DllInst);
+        DllInst = dll.DllInst;
         dll.DllInst = 0;
         return *this;
       }
@@ -51,9 +61,11 @@ namespace Boss
       template <typename T>
       T GetProc(const std::string &procName)
       {
+        if (DllInst == nullptr)
+          throw DllHolderException("Library was not loaded.");
         void *Proc = dlsym(DllInst, procName.c_str());
         if (!Proc)
-          throw DllHolderException("Function not found");
+          throw DllHolderException("Function \"" + procName + "\" not found.");
         return reinterpret_cast<T>(Proc);
       }
 

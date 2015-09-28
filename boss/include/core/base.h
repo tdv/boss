@@ -1,3 +1,13 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #ifndef __BOSS_CORE_BASE_H__
 #define __BOSS_CORE_BASE_H__
 
@@ -19,6 +29,8 @@ namespace Boss
   namespace Private
   {
 
+    enum { EndNegIntIter = static_cast<std::size_t>(-1) };
+    
     template <typename T>
     class HasBeforeRelease
     {
@@ -101,7 +113,7 @@ namespace Boss
     template
     <
       typename T,
-      bool IsCoClass = std::is_base_of<CoClassAdditive, T>::value
+      bool IsCoClass = std::is_base_of<CoClassBase, T>::value
     >
     struct BeforeRelease
     {
@@ -124,7 +136,7 @@ namespace Boss
     };
 
     template <typename T>
-    struct BeforeReleaseIter<T, -1>
+    struct BeforeReleaseIter<T, EndNegIntIter>
     {
       template <typename ObjType>
       static void Release(ObjType *)
@@ -148,7 +160,7 @@ namespace Boss
     template
     <
       typename T,
-      bool IsCoClass = std::is_base_of<CoClassAdditive, T>::value
+      bool IsCoClass = std::is_base_of<CoClassBase, T>::value
     >
     struct FinalizeConstruct
     {
@@ -171,7 +183,7 @@ namespace Boss
     };
 
     template <typename T>
-    struct FinalizeConstructIter<T, -1>
+    struct FinalizeConstructIter<T, EndNegIntIter>
     {
       template <typename ObjType>
       static void Construct(ObjType *)
@@ -213,7 +225,7 @@ namespace Boss
     };
 
     template <typename T>
-    struct QueryInterfacesListIter<T, -1>
+    struct QueryInterfacesListIter<T, EndNegIntIter>
     {
       template <typename ObjType>
       static RetCode Query(ObjType *, InterfaceId, Ptr *)
@@ -252,7 +264,7 @@ namespace Boss
     template
     <
       typename T,
-      bool IsCoClass = std::is_base_of<CoClassAdditive, T>::value
+      bool IsCoClass = std::is_base_of<CoClassBase, T>::value
     >
     struct QueryInterface
     {
@@ -281,7 +293,7 @@ namespace Boss
     };
 
     template <typename T>
-    struct QueryInterfaceIter<T, -1>
+    struct QueryInterfaceIter<T, EndNegIntIter>
     {
       template <typename ObjType>
       static RetCode Query(ObjType *obj, InterfaceId ifaceId, Ptr *iface)
@@ -302,11 +314,17 @@ namespace Boss
       }
     };
 
+    struct IBaseCastHelper
+      : public IBase
+    {
+    };
+    
   }
 
   template <typename T>
   class Base final
     : public T
+    , private Private::IBaseCastHelper
   {
   public:
     Base(Base const &) = delete;
@@ -336,6 +354,11 @@ namespace Boss
     virtual ~Base()
     {
       Private::ModuleCounter::Release();
+    }
+    // IBaseProvider
+    virtual IBase* GetThisIBase()
+    {
+      return static_cast<IBaseCastHelper *>(this);
     }
     // IBase
     virtual UInt BOSS_CALL AddRef()

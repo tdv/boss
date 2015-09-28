@@ -1,3 +1,13 @@
+//-------------------------------------------------------------------
+//  Base Objects for Service Solutions (BOSS)
+//  www.t-boss.ru
+//
+//  Created:     01.03.2014
+//  mail:        boss@t-boss.ru
+//
+//  Copyright (C) 2014 t-Boss 
+//-------------------------------------------------------------------
+
 #ifndef __BOSS_PLUGIN_CO_CLASS_SET_H__
 #define __BOSS_PLUGIN_CO_CLASS_SET_H__
 
@@ -5,6 +15,7 @@
 #include "../core/ref_obj_ptr.h"
 #include "../core/ibase.h"
 #include "../core/base.h"
+#include "../core/utils.h"
 
 namespace Boss
 {
@@ -14,7 +25,7 @@ namespace Boss
   namespace Private
   {
 
-    template <typename T, unsigned I>
+    template <typename T, int I>
     struct CoClassSet
     {
       template <typename ... Args>
@@ -43,11 +54,11 @@ namespace Boss
       static RefObjPtr<IBase> CreateObject(ClassId clsId, Args const & ...)
       {
         throw CoClassSetException("Failed to create object with CoClassId = " +
-                                  std::to_string(clsId) + ".");
+                                  ToString(clsId) + ".");
       }
       static ClassId GetId(UInt pos)
       {
-        throw CoClassSetException("Position " + std::to_string(pos) +
+        throw CoClassSetException("Position " + ToString(pos) +
                                   " is out of range.");
       }
     };
@@ -73,7 +84,7 @@ namespace Boss
     template <typename ... Args, unsigned N>
     static RefObjPtr<IBase> CreateObject(char const (&clsId)[N], Args const & ... args)
     {
-      return CreateObject(Crc32(clsId), args ... );
+      return CreateObject(MakeId(clsId), args ... );
     }
     static UInt GetClassCount()
     {
