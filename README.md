@@ -2,6 +2,8 @@
 
 Cross-platform component framework in C++11
 
+**[ru] Site** [BOSS](http://t-boss.ru/)  
+
 **Boss gives you:**
 - Ability of building loosely-coupled systems
 - Minimal effort for creating new components
@@ -80,6 +82,3 @@ Components designed for inter-process communication are developed the same way a
 #### 1.2.3 Distributed system
 
 A distributed system is a system of inter-process components with additional transport mechanism which extends the application to the cluster by using the network communication. Basically inter-process components and distributed components are the same components with a different transport layer. For example, one can use shared memory or another mechanisms or IPC within one machine and some network protocols for network distributed components. These two species of components are separated intentionally for  emphasizing various approaches of using Boss.
-
-
-
