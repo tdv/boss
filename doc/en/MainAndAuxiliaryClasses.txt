@@ -1,0 +1,295 @@
+8. Main and auxiliary classses, function and other element of the framework
+
+All the interfaces described above have their default implementation in the component model. Most of them are discussed in this chapter.
+There exist some auxiliary to imlementation classes elements. The names of the included files further are written relative to 
+'boss/include' folder.
+
+8.1 Class Base
+
+Including file: 'core/base.h'
+
+The class implements an interface IBase. The class Base is a template with a parameter - imlementation of the IBase interface.
+It is impossible to instantiate the class Base directly, it has a special static method 'Create'.
+All the interfaces in the framework inherit directly or indirectly the interface 'IBase'.
+The methods of the interface are implemented just in the class Base. Hence, all the rest classes-implementations are abstract.
+If an object is instantiated not by the class factory it should be created by the static method 'Create' of the class Base.
+This template method has a variable number of parameters which lets us implement a constructor with parameters and pass them
+at the moment of instantiation via Base::Create. An example of instantiation without the class factory:
+
+Boss::Base<My::MyClass>::Create(Param1, Param2);
+
+where My::MyClass is a user's class-implementation. The method Base::Create returns a smart-pointer to the allocated object.
+Implementation of the methods of IBase is not the only job of a class-implementation. It also able to traverse the inreritance
+hierarchy and call post-initialization and pre-destruction methods. Why would we need it? As we know from the C++
+standard, calls of virtual functions from constructor or destructor are not virtual. The construction of an object
+must be finished before we call any virtual methods. For cases when we need to call some virtual functions 
+the frame work has an analogous to constructors/destructors functions.
+If a user must initialize something after the standard construction chain (or clean-up before destruction) he can implement 
+methods:
+
+void FinalizeConstruct();
+void BeforeRelease();
+
+and do some work there before an object is returned to the caller (or before object is destructed).
+It is important to remember that these methods must not be virtual. They might either present in the implementation or absent.
+Throwing an exception in the discussed methods is legit. In this case the method BeforeRelease is called it the backward order
+for those object where the call of FinalizeConstruct was successful. 
+
+8.3 Class CoClass
+
+Including file: 'core/co_class.h'
+The class CoClass is a base class for all the interface implementations which might be constructed by
+the class factory or by Base::Create. CoClass is a template taking and ID of the class-implementation as a first parameter. 
+The subsequent parameters are not restricted, one can pass various interfaces (or implementations) which are inherited in the current implementation.
+
+If you do not need a class ID you can use the class CoClassBase. The class is completely similar to the CoClass
+but lacks the first parameter, namely an ID. CoClassBase can be used for entities representing returning values of the
+implementation's methods.
+
+8.3 Redefined types of the framework
+
+Including file: 'core/core_types.h'
+
+Some C++ types are redefined in the framework.
+
+namespace Boss
+{
+  typedef std::uint32_t InterfaceId;
+  typedef std::uint32_t ClassId;
+  typedef std::uint32_t ServiceId;
+  typedef std::uint32_t UInt;
+  typedef std::uint32_t RetCode;
+  typedef void *Ptr;
+}
+
+8.4 Crc32 computing
+
+Including file: 'core/crc32.h'
+
+For computing crc32 we have two functions:
+
+template <UInt N>
+inline constexpr UInt Crc32(char const (&str)[N]);
+
+inline UInt Crc32(void const *data, std::size_t bytes);
+
+The first one is designed for compile-time computing of crc32. (It became possible with C++11).
+The latter computes crc32 in the run-time taking an array of an arbitrary length as the input.
+The function MakeId calls internally the first crc32 method.
+
+8.5 Returning code
+
+Including file: 'core/error_codes.h'
+
+The available codes for all the methods returning RetCode are listed in the included file.
+An example:
+
+RetCode Mtd()
+{
+  return Boss::Status::Ok;
+}
+
+8.6 Exceptions
+
+Including file: 'core/exceptions.h'
+
+There are some macros for defining a user exception:
+
+BOSS_DECLARE_RUNTIME_EXCEPTION
+BOSS_DECLARE_EXCEPTION_EX
+
+The first macro derives an exception class from std::runtile_error and adds a suffix 'Exception' to the class name.
+The example for a user-defined MyClassException class:
+
+BOSS_DECLARE_RUNTIME_EXCEPTION(MyClass)
+
+
+8.7 Smart pointers
+
+Including files: 'core/ref_obj_ptr.h'
+                 'core/ref_obj_qi_ptr.h'
+
+Smart pointers are designed for a routine job of calling AddRef and Release methods of the base interface.
+They are employed by working with the class factory, the method Base::Create, and the ServiceLocator.
+
+There are two types of smart pointers: RefObjPtr for storing and passing pointers and RefObjQIPtr which allows 
+additionally query an interface from another one in constructors and assignment operators.
+
+Both classes provide methods for accessing "raw" pointers: Get and GetPPtr.
+The first one delivers a pointer, the second one a pointer to the pointer. Examples of usage:
+
+Boss::RefObjPtr<IMyFace1> Face1 = Boss::CreateObject<IMyFace1>(Boss::MakeId("MyNs.MyFace1"));
+Face1->Face1Mtd();
+
+Boss::RefObjQIPtr<IMyFace2> Face2(Face1);
+if (Face2.Get())
+  Face2->Face2Mtd();
+
+//  Factory — pointer to IClassFactory
+Boss::RefObjPtr<IMyFace3> Face3;
+if (Factory->CreateObject(Boss::MakeId("MyNs.MyFace3", Face3.GetPPtr())) == Boss::Status::Ok)
+  Face3->Face3Mtd();
+
+8.8 Auxiliary objects of the framework
+
+Including file: 'core/utils.h'
+
+Utils contain such objects as the function MakeId, a structure for getting InterfaceTraits and a structure
+for getting an ID of implementation-class GetCoClassId.
+An example of getting the ID of an interface:
+
+Boss::InterfaceTraits<Boss::IBase>::Id
+
+The code above takes the ID of an IBase interface. In a properly written code a programmer should not
+work with IDs directly as they are used internally by smart pointers.
+
+
+8.9 Class Buffer
+
+Including file: 'common/buffer.h'
+
+An implementation of the interface IBuffer.
+
+
+8.10 Class EntityId
+
+Including file: 'common/entity_id.h'
+
+An implementation of the interface IEntityId.
+
+
+8.11 Class Enum
+
+Including file: 'common/enum.h'
+
+An implementation of the interface IEnum.
+
+
+8.12 File IO streams
+
+Including file: 'common/file_stream.h'
+
+Implementations  of IIStream, IOStream, IIOStream.
+
+
+8.13 Classs NamedValue
+
+Including file 'common/named_value.h'
+
+An implementation of the interface INamedValue.
+
+
+8.14 Class ServiceLocator
+
+Including file: 'common/service_locator.h'
+
+An implementation of the interface IServiceLocator.
+
+
+8.15 Class String
+
+Including file: 'common/string.h'
+
+An implementation of the interface IString.
+
+
+8.16 Class XmlPropertyBag
+
+Including file: 'common/xml_property_bag.h'
+
+An implementation of the interface IPropertyBag. The object  of this type can be serialized to the data stream as 
+xml data and restored from the stream. It implements also the interface ISerializable.
+
+8.17. Additional elements
+
+Including file: 'common/utility.h'
+
+8.18 Class DllHolder
+
+Including file: 'plugin/dll_holder.h'
+
+A wrapper for system functions.
+
+
+8.19 Class ModuleHolder
+
+Including file: 'plugin/module_holder.h'
+
+Works with an entry point of a framework module.
+
+
+8.20 Entry point macros
+
+Including point: 'plugin/module.h'
+
+Includes the macro 'BOSS_DECLARE_MODULE_ENTRY_POINT' for creating an entry point for some module.
+The file is also included to the source file with the main function (but without declaring an entry point).
+The included header contains some important functions.
+
+
+8.21 Utilities for ClassFactory and ServiceLocator
+
+Including file: 'plugin/factory_tools.h'
+
+The functions creates new objects using the ClassFactory:
+
+template <typename T>
+inline RefObjPtr<T> CreateObject(ClassId clsId);
+
+
+8.22 Class Loader
+
+Including file: 'plugin/loader.h'
+
+A class for loading the component model. An instance of this type should exist throughout the time of using the framework.
+
+
+8.23. IDs of main services in the framework
+
+Including file: 'plugin/service_ids.h'
+
+There are some standard implementations for base services of the component model.
+Their identifiers are situated in a special file 'service_ids.h'
+
+namespace Boss
+{
+  
+  namespace Service
+  {
+    
+    namespace Id
+    {
+      
+      enum
+      {
+        ServiceRegistry = MakeId("Boss.ServiceRegistry"),
+        ClassFactory = MakeId("Boss.ClassFactory")
+      };
+      
+    }
+    
+  }
+  
+}
+
+8.24 Classes providing service information
+
+Including file: 'plugin/service_info.h'
+
+Implementations of the interfaces IServiceInfo, ILocalServiceInfo, IRemoteServiceInfo
+
+
+8.25 ServiceLocator
+
+Including file: 'plugin/service_locator.h'
+
+An implementation of the interface IServiceLocator
+
+8.26 IDs of services in the global ServiceLocator
+
+Including file: 'plugin/service_locator_ids.h'
+
+Analogously to the 'service_ids.h' this file contains IDs of the services from the global ServiceLocator.
+
+
+

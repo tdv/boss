@@ -1,0 +1,53 @@
+4. Framework infrastructure
+
+The framework consists of services and utilities. Services are specific components aimed at an abstract representation of terms "dynamic library", "executable file", "process".
+
+4.1 Base services
+
+Base services include a service registry, a class factory and a utility for handling the service registry.
+
+4.1.1. Service registry
+
+The service registry is a storage for all the service information.
+
+1. Service id
+2. List of classes-implementations
+3. Path to so/dll module (for simple-process applications)
+4. Information for Proxy/Stub loading
+5. Information about communication channel between components in different processes.
+
+This information is essential for the class factory for loading plugins and instantiating classes.
+
+4.1.1.1
+
+4.1.2
+
+The class factory is a base component of the framework which creates most of the components within the framework. The factory hides from user the information about the component's location and its origin from another process. The client code requests to create an instance with given id. In turn, the class factory using the information from the service registry loads a necessary module, creates a new object employing the module's entry point and returns it to a client. If we need to create another object the framework is able to reuse the previously loaded module. With a certain rate the class factory checks the reference counter of each loaded module and unloads them on demand. In case of a multi-process application the factory loads each Proxy/Stub of a class-implementation and creates its transport for establishing a connection to the server with the implementation's code. As the reference counter reaches zero the Proxy/Stub is unloaded and the client de-connects from the server.
+
+4.1.2.1 Class factory and ServiceLocator
+
+At any place in the code a developer must be able to access a class factory in order to create certain instances. It would have been possible to share an instance of a class-factory among all the components, but this approach has some drawbacks: one must write a plenty of additional code for passing the class factory. Thus, the framework uses one global ServiceLocator which reads:
+
+--- code ---
+
+The purpose of this object is to provide a place for storing and further fetching of any other object. During the loading of the component model the class Boss::Loader creates and instance of ServiceLocator and passes it to the class factory. The class factory stores itself inside the ServiceLocator, the ServiceLocator is then injected into all the loaded modules, so it becomes available everywhere. This way a class factory stored in the ServiceLocator can be accessed in any module.
+
+Besides, there is a function:
+
+--- code ---
+
+The function looks for an instance of the ServiceLocator in a module, fetches a class factory, and uses is for creating an object instance with a given id. Further, a template argument is used to return a valid interface provided by the object. Besides, as we have the global instance of the ServiceLocator everywhere, one can distribute within all the modules certain "global" instances (interfaces). It must be done carefully in order not to create cyclic references which are inherent by the improper handling for reference-counting systems. The probability of having cyclic references increases with an excessive usage of "global" interfaces. The ServiceLocator can be utilized not only for the class factory but, for example, for a logging system etc.
+
+4.1.3 Register service utility
+
+In order to make use of various components one need to register them first. For this purpose there exists an utility regtool. If you run it with a key "-h" you would get help information about all the available parameters. The utility registers components in the service register. An interface of the service registry can vary from version to version, thus, it is not recommended to edit a service registry file manually, but use the aforementioned utility.
+
+4.2. System loading
+
+Each process employed in the framework must load and initialize the component model. In case of single-process application the initialization code is placed in the main() function. The code then reads:
+
+--- code ---
+
+The framework is loaded by creating an instance of the class Boss::Loader. This object exists until an application is terminated. The constructor of Boss::Loader takes three parameters: the path to the service registry file (here it is Registry.xml) created by the regtool utility, the path to the service dynamic library (./libservice_registry.so) and, finally, the path to the library of the class factory (./libclass_factory.so). For Windows system an extension for libraries would be .dll.
+
+

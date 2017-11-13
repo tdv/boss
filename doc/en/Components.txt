@@ -1,0 +1,69 @@
+3. Creating components
+
+An interface is a structure with purely virtual functions. In turn, a component is a class-implementation of an interface or a hierarchy of interfaces. Due to the multiple inheritance in C++ components are able to inherit various interfaces and classes and provide interfaces implemented in the base classes.
+
+3.1 Identifier of a class-implementation (of a component)
+
+Analogously to an interface, a class-implementation has its own identifier. The identifier is created by the function MakeId and is passed as a template parameter for a base class for any implementation (CoClass). This identifier is used by the mechanisms of the framework for creating entities of classes by a class-factory. For example, we get an interface representing a basic functionality of a printer. It can be implemented differently for various printers. For using a certain implementation a developer simply passes a correct identifier to the class factory, the rest workflow with an obtained pointer to the interfaces stays unchanged.
+
+3.2 Simple component
+
+We use the term "simple component" for a component where just a single interface is implemented wherein the interface is derived directly from the base interface of the framework. As an example we consider an interface and its implementation. The interface:
+
+--- code ---
+
+The implementation:
+
+--- code ---
+
+Please, pay attention to the line public CoClass<MakeId("Boss.EntityId"), IEntityId>. This line is an illustration of how a class-implementation is inherited from the templated base class. The first template argument is the implementation's id. This parameter is essential even for classes which are not planned for construction via the class factory. Using features of C++11 we pass a list of interfaces as a template argument to the base class of the implementation. Besides interfaces, we can pass another classes-implementations to allow our current class export their interfaces and to employ an existent implementation.
+
+3.3 Simple component implementing an interface hierarchy
+
+A component can implement a hierarchy of interfaces without deriving classes-implementations. Such a component can be also considered to be "simple". Let's have a look at a hierarchy example:
+
+--- code ---
+
+A class-implementation for aforementioned hierarchy reads:
+
+
+--- code ---
+
+Another example of a component with same interfaces without making use of a hierarchy:
+
+--- code ---
+
+A class-implementation:
+
+--- code ---
+
+As we see, almost nothing has been changed, just an explicit interface decoupling has been made. Thus, we can assemble components by joining necessary interfaces without building hierarchies. The difference in these two approaches lies in various combinations of template parameters. This approach could look excessive as we might use a construction dynamic_cast. In this case the framework does not rely on language tools, moreover, for inter-process communication built-in language capabilities are insufficient.
+
+
+3.4. Complex component. Implementation of an interface hierarchy and inheritance of implemented classes
+
+The term "Complex components" covers all the components which implement a certain interface of a hierarchy of interfaces and inherit some classes at the same time. In this case such a component has its own "face", on the other hand it represents other interfaces obtained from inherited classes. As an example we consider a case with several interfaces, their hierarchies and their classes-implementations. A code example works better than words:
+
+--- code ---
+
+Classes-implementations:
+
+--- code ---
+
+As a result we have IFace123456 which contains an implementation of all the six interfaces. Each of them could be obtained via the mechanism of interface-querying (IBase::QueryInterface). The querying mechanism is something more than simple type casting. We will discuss it in details later.
+
+3.5 Component modules
+
+There must be modules where all the components are stored. In our case a module is a dynamic (shared) library (dll for Windows and so for *nix systems).  Besides, some components could be placed in the executable binary. This file initializes the loading of components and contains specific code for these purposes. The components placed in the executable file can not be obtained via the class factory, but their interfaces can be easily passed to other components in various modules or be passed to other processes via the remote access interface. In multi-process applications components are stored in dynamic libraries as well. The inter-process communication is done by Proxy/Stub which are also specific components.
+
+3.5.1 Module identifier
+
+Similarly to interfaces or classes-implementations a module has its own identifier. The identifier is used by a class-factory. As the factory gets a request for creating an instance of a certain class, it searches a corresponding module using the service registry. The module id is essential for this search. As it was discussed earlier, the id is a number, a Crc32 of some string, for example, a functional name of a service "ClassFactory".
+
+3.5.2 Entry point
+
+Each module exporting components must have an entry point. The entry point is a set of exported functions serving several purposes: they are used by a class factory for creating objects, obtaining a module reference counter. A module is unloaded until required if a reference counter hits zero. The entry point is defined by a macro <b>BOSS_DECLARE_MODULE_ENTRY_POINT </b>. The macro has two parameters: id (a Crc32 from string) and a tuple of classes-implementations (a list of exporting classes\components). Let's export classes discussed above:
+
+--- code ---
+
+The example above shows a module with an id MyTestService exporting five classes created in the case with the complex component.

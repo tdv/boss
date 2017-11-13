@@ -1,0 +1,142 @@
+7. Interfaces of component model
+
+All the interfaces in the framework belong to three groups and are placed into the same namespace. Some of described interfaces have a base implementation. A user can employ the default implementation or write his own. The interfaces are describe in files with a name ixxx.h. If the name of an interface has several words it reads ixxx_xxx.h. The core interfaces are placed into the folder "boss/include/core", auxiliary interfaces are situated in "boss/include/common", and interfaces for plugin creation are stored in "boss/include/plugin".
+
+7.1 Core interfaces
+
+The system core is not related directly either to single-process applications nor to distributed (or remote) processes. The core objects are dealing with reference counting and interface/implementation queries.
+
+7.1.1 IBase
+
+IBase is the base interface both for all the interfaces of the framework and interfaces developed by a user. The interface provides reference counting features and serves querying other interfaces from the class-implementation.
+
+Method | Return value | Description
+AddRef | UInt | Increments reference counter. Returns new number of references
+Release | UInt | Decrements reference counter. Returns new number of references, deallocates an instance when the number is 0 (delete this)
+QueryInterface | RetCode | Requests an interface in the class-implementation. Returs if the operation was successfull
+
+7.2 Common auxiliary interfaces
+
+Common interfaces solve various auxiliary problems. These interfaces could be used either in single-process or multi-process applications.
+
+7.2.1 IBuffer
+
+An interface for transferring raw data between components. Using "void*" parameters is not recommended. It is possible just for single-process applications, in other cases it is better to use the interface IBuffer for transferring in- and output data.
+
+Method | Return value | Description
+GetData | RetCode | Getting pointer to data array
+GetSize | RetCode | Getting size of data array in bytes
+
+All the methods return a status of an executed operation.
+
+7.2.2 IEntityId
+
+The interface is used to emphasize the use of an entity's id, not a simple number.
+
+Method | Return value | Description
+GetId  | RetCode | Getting identificator of an entity
+
+
+The method returns a status of an executed operation.
+
+7.2.3 IEnum
+
+The interface for working with a collection of objects.
+
+Method | Return value | Description
+Next | RetCode | Getting next element in a collection
+Reset | RetCode | Setting iteration cursor to start
+
+
+7.2.4 IIOStream
+
+The interface derives IIStream and IOStream. It joints the interfaces for data input/output.
+
+7.2.5 IIStream
+
+The interface for input data stream.
+
+Method | Return value | Description
+Read | RetCode | Getting data buffer from stream
+
+7.2.6 IOStream
+
+The interface for output data stream.
+
+Method | Return value | Description
+Write | RetCode | Sending data buffer to stream
+
+7.2.7 INamedValue
+
+The interface for a named variable. This interface binds a variable to a certain string identifier. It is used as an element of a "property bucket". All the values in the "bucket" are used solely as interfaces.
+
+Method | Return value | Description
+GetName | RetCode | Getting name of variable / its id
+GetValue | RetCode | Getting interface of named variable
+
+7.2.8 IPropertyBag
+
+The interface for a "property bucket". It represents a collection containing elements with corresponding string-ids. The interface is used for passing groups of properties between the components. For example, the framework uses it for passing the properties of services in the Service Registry and Class Factory interaction. The service location information is not stored identically for all the services, thus we use the "property bucket".
+
+Method | Return value | Description
+GetProperty | RetCode | Getting stored value by sting-identifier
+SetProperty | RetCode | Setting value with given name of variable
+EnumProperties | RetCode | Getting enumeration of whole collection
+
+7.2.9 ISerializable
+
+The interface for serializing and de-serializing and loading an object in/from data streams.
+
+Method | Return value | Description
+Load | RetCode | De-serializing object from data stream
+Save | RetCode | Serializing object from data stream
+
+7.2.10 IServiceLocator
+
+The interface for storing various identities of classes-implementations with a given id and for accesing stored items from any place where ServiceLocator is available. One can store the same classes-implementations under different ids.
+
+Method | Return value | Description
+GetService | RetCode | Getting service with given name
+AddService | RetCode | Adding service with given id
+DelService | RetCode | Deleting object with given id from ServiceLocator
+
+7.2.11 IString
+
+The interface is designed for passing strings as parameters of some class methods. As it is preferable to have all the methods returning RetCode, we cannot return "char const *". To overcome this condition the interface IString could be used.
+
+7.3 Interfaces of the component model (plugin system)
+
+All the interfaces in this group (excluding IClassFactory) are intended for the inner usage inside the component model. Although, a user can implement his own realization of base services. The interface IClassFactory is used for creating objects in the Class Factory. Albeit it is more convinient to use a global function CreateObject described above.
+
+7.3.1 IClassFactory
+
+The interface of a class factory which is used for allocating objects within the framework registered in the service registry. It is bit more straightforward to use a global function CreateObject. The interface could be used for creating an alternative class factory.
+
+Method | Return value | Description
+Create Object | RetCode | Intended for creating objects registered int the Service Registry
+
+7.3.2 IClassFactoryCtrl
+
+The interface for managing the class factory. It is implemented in a basis service, Class Factory. A developer do not directly use this interface but it could be employed for writing own implementation of a class factory.
+
+7.3.3 IServiceInfo
+
+The interface for getting information about every service within the framework. It alse can be used for writing an alternative implementation of the service registry.
+
+7.3.4 ILocalServiceInfo
+
+The interface serves a local service of the framework (within a single-process application). It can be used for writing an alternative implementation of the service registry.
+
+7.3.5 IRemoteServiceInfo
+
+The interface for handling information about distributed services. It is used analogously to the ILocalServiceInfo interface.
+
+7.3.6 IServiceRegistry
+
+The interface of the service registry. It provides information about loading and remote accessing various services.
+
+7.3.7 IServiceRegistryCtrl
+
+The interface for handing the service registry. It could be implemented for producing an alternative service registry.
+
+

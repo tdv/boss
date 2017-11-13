@@ -1,0 +1,35 @@
+2. Interfaces
+
+All the components implement certain interfaces. Interfaces are the basis of components interaction. The client code discussed within the current framework communicates with components via interfaces as well.
+
+2.1 What is the interface
+
+The notion of "interface" can include various entities: a set of procedures, a group of files with combined items inside, structures with abstract (pure virtual) methods, namespaces etc. In our case we consider the interface to be a structure which has exclusively virtual methods and no run-time data.
+
+An example of the interface:
+
+----
+
+2.2 Interface identifier
+
+Each interface in Boss has its unique identifier. The identifier is represented by Crc32 of a certain string. C++11 provides us with compile-time calculations which are used for computing Crc32. This feature is used within the framework for defining various identifiers including identifiers of interfaces. The interface identifier is defined by the macro BOSS_DECLARE_IFACEID and used for requesting the interfaces registered in the component model. (While working with MS VC++ 2013 or clang the macro BOSS_DECLARE_IFACEID_HEX should be used). The ids serves the interface request mechanism.
+
+An example of defining the interface identifier:
+
+2.3 Definition of interface
+
+Each component within the framework is defined by an interface or a hierarchy of interfaces. The interface follows certain rules:
+
+1. It must by derived at least from the base interface IBase. Additionally, each interface can inherit from any other interface of the model or from the interface defined by a developer. The multiple inheritance is supported.
+
+2. The inheritance is performed by the special entity of Boss -- "Inherit". This is required by the system of interface requests for correct traversal of the inheritance hierarchy.
+
+3. Every method inside the interface should have a definition of function calling convention which is set by the macro BOSS_CALL. This macro is translated according to the operating system and compiler. The explicit definition of calling convention allows to use different compilers together.
+
+4. Every method of the interface is supposed to return the type RetCode. This type is essential for multi-process interaction, otherwise a function can return an arbitrary type.
+
+An example of a complete interface:
+
+2.4 Hierarchy of interfaces
+
+A hierarchy of interfaces is built by a chain of single inheritance or by multiple inheritance. An example of an interface hierarchy:

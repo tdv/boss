@@ -1,0 +1,35 @@
+5. Example of simple application
+
+An example of a simple application comprises just one component and one client appication. As an example, we develop a component summing up two integer numbers. The file with a description of an interface (isum.h):
+
+--- code ---
+
+The same id is used by defining a class-implementation and by instantiating a class in the class factory, so we can put in in a separate file (class_ids.h):
+
+--- code ---
+
+Further, we write an implementation for a certain interface with the predefined id (calc_service.h)
+
+--- code ---
+
+The implementation of the (calc_service.cpp):
+
+-- code ---
+
+After creating a component the module's entry point must be defined (module.cpp):
+
+-- code ---
+
+Afterwards we compile our source code and link it up as a shared library. The produced library is registered in the service registry:
+
+
+---- command---
+
+On the Windows platform the name of a service is calc_service.dll.
+
+Below you can see the code of the main application:
+
+--- code ---
+
+After compiling the application is ready for work.
+
