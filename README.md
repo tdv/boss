@@ -2,8 +2,6 @@
 
 Cross-platform component framework in C++11
 
-**[ru] Site** [BOSS](http://t-boss.ru/)  
-
 **Boss gives you:**
 - Ability of building loosely-coupled systems
 - Minimal effort for creating new components
